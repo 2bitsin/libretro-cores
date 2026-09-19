@@ -1,0 +1,24 @@
+m68k bus refresh cycle in save states -- no upstream issue exists for it.
+m68k.refresh_cycles is where the next Mega Drive bus refresh stall falls;
+system.c rebases it with m68k.cycles every frame and m68k_pulse_reset
+re-synchronises it, so state_load's system_reset moved it while
+state_save never wrote it, and a restored run took its 14-cycle stalls on
+different instructions. Measured on WWF: work ram diverged one frame on.
+--- a/core/state.c
++++ b/core/state.c
+@@ -161,6 +161,7 @@
+     load_param(&m68k.cycles, sizeof(m68k.cycles));
+     load_param(&m68k.int_level, sizeof(m68k.int_level));
+     load_param(&m68k.stopped, sizeof(m68k.stopped));
++    load_param(&m68k.refresh_cycles, sizeof(m68k.refresh_cycles));
+   }
+ 
+   /* Z80 */ 
+@@ -263,6 +264,7 @@
+     save_param(&m68k.cycles, sizeof(m68k.cycles));
+     save_param(&m68k.int_level, sizeof(m68k.int_level));
+     save_param(&m68k.stopped, sizeof(m68k.stopped));
++    save_param(&m68k.refresh_cycles, sizeof(m68k.refresh_cycles));
+   }
+ 
+   /* Z80 */ 

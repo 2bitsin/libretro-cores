@@ -1,0 +1,11 @@
+# The conan recipe revision is a hash of the EXPORTED files -- conanfile.py,
+# buildutil.toml, CMakeLists.txt and the whole sources/ tree (the recipe's
+# exports/exports_sources). A CRLF checkout on the Windows publish runner
+# would hash differently from the Linux and macOS lanes, splitting one
+# release across two recipe revisions: consumers resolve the LATEST revision
+# and would find only the binaries published under it. Force LF everywhere.
+* text=auto eol=lf
+
+# a patch context line must match the pinned tree byte for byte, and that
+# tree is CRLF
+*.patch -text

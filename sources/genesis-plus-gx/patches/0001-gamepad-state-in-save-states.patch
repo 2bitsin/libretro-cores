@@ -1,0 +1,76 @@
+gamepad state in save states -- no upstream issue exists for it.
+core/input_hw/gamepad.c holds the 6-button pad's TH level, pulse counter,
+timeout and TH latency in file scope and state_save never wrote them, so
+state_load's system_reset left a restored 6-button game on reset values
+and it diverged within a few frames. STATE_VERSION stays as it is: the
+loader compares that string, and older states are nobody's concern here.
+--- a/core/input_hw/gamepad.c
++++ b/core/input_hw/gamepad.c
+@@ -221,6 +221,26 @@
+   gamepad[port].State = data;
+ }
+ 
++int gamepad_context_save(uint8 *state)
++{
++  int bufferptr = 0;
++
++  save_param(gamepad, sizeof(gamepad));
++  save_param(flipflop, sizeof(flipflop));
++  save_param(&latch, sizeof(latch));
++  return bufferptr;
++}
++
++int gamepad_context_load(uint8 *state)
++{
++  int bufferptr = 0;
++
++  load_param(gamepad, sizeof(gamepad));
++  load_param(flipflop, sizeof(flipflop));
++  load_param(&latch, sizeof(latch));
++  return bufferptr;
++}
++
+ /*--------------------------------------------------------------------------*/
+ /*  Default ports handlers                                                  */
+ /*--------------------------------------------------------------------------*/
+--- a/core/input_hw/gamepad.h
++++ b/core/input_hw/gamepad.h
+@@ -44,6 +44,8 @@
+ extern void gamepad_reset(int port);
+ extern void gamepad_refresh(int port);
+ extern void gamepad_end_frame(int port, unsigned int cycles);
++extern int gamepad_context_save(uint8 *state);
++extern int gamepad_context_load(uint8 *state);
+ extern unsigned char gamepad_1_read(void);
+ extern unsigned char gamepad_2_read(void);
+ extern void gamepad_1_write(unsigned char data, unsigned char mask);
+--- a/core/state.c
++++ b/core/state.c
+@@ -37,6 +37,7 @@
+  ****************************************************************************************/
+ 
+ #include "shared.h"
++#include "gamepad.h"
+ 
+ int8 fast_savestates = false;
+ int8 reset_do_not_clear_buffers = false;
+@@ -114,6 +115,9 @@
+     io_reg[0] = 0x80 | (region_code >> 1);
+   }
+ 
++  /* GAMEPAD */
++  bufferptr += gamepad_context_load(&state[bufferptr]);
++
+   /* VDP */
+   bufferptr += vdp_context_load(&state[bufferptr]);
+ 
+@@ -221,6 +225,9 @@
+   /* IO */
+   save_param(io_reg, sizeof(io_reg));
+ 
++  /* GAMEPAD */
++  bufferptr += gamepad_context_save(&state[bufferptr]);
++
+   /* VDP */
+   bufferptr += vdp_context_save(&state[bufferptr]);
+ 

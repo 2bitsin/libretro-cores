@@ -1,0 +1,27 @@
+#!/bin/sh
+# buildutil launcher -- written by `buildutil install` / `buildutil init`.
+# `./buildutil build ...` runs the project's buildutil through the venv
+# the first run bootstraps (_pyvenv), so every call uses the pinned
+# toolchain. A vendored copy (.buildutil/buildutil) takes precedence
+# over anything installed on the machine. install/update regenerate
+# this file -- edits here do not survive.
+here="$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)"
+venv="${BUILDUTIL_VENV_DIR:-$here/_pyvenv}"
+# keep bytecode caches out of the tracked tree (vendored copy included)
+: "${PYTHONPYCACHEPREFIX:=$here/_bdudata/pycache}"
+export PYTHONPYCACHEPREFIX
+if [ -f "$here/.buildutil/buildutil/__main__.py" ]; then
+  PYTHONPATH="$here/.buildutil${PYTHONPATH:+:$PYTHONPATH}"
+  export PYTHONPATH
+  if [ -x "$venv/bin/python" ]; then
+    exec "$venv/bin/python" -m buildutil "$@"
+  fi
+  exec python3 -m buildutil "$@"
+fi
+if [ -x "$venv/bin/buildutil" ]; then
+  exec "$venv/bin/buildutil" "$@"
+fi
+if command -v buildutil >/dev/null 2>&1; then
+  exec buildutil "$@"
+fi
+exec python3 -m buildutil "$@"

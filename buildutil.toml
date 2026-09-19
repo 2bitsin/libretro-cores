@@ -1,0 +1,8 @@
+[project]
+name = "libretro-cores"
+cmake_option_prefix = "LIBRETRO"
+module_define_prefix = "LIBRETRO"
+
+[package]
+kind = "library"   # library | application | none
+name = "libretro-cores"

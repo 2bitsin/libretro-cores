@@ -1,0 +1,24 @@
+YM2612 BUSY end cycle in save states -- no upstream issue exists for it.
+core/sound/sound.c holds fm_cycles_busy at file scope: a DATA port write
+sets it 32 YM2612 cycles ahead and a status read reports BUSY until the
+68000 reaches it. sound_context_save never wrote it and state_load's
+system_reset runs sound_reset, which clears it, so a restored run answered
+a status poll that the run it came from still answered BUSY.
+--- a/core/sound/sound.c
++++ b/core/sound/sound.c
+@@ -580,6 +580,7 @@
+   bufferptr += psg_context_save(&state[bufferptr]);
+ 
+   save_param(&fm_cycles_start,sizeof(fm_cycles_start));
++  save_param(&fm_cycles_busy,sizeof(fm_cycles_busy));
+ 
+   return bufferptr;
+ }
+@@ -631,6 +632,7 @@
+   bufferptr += psg_context_load(&state[bufferptr]);
+ 
+   load_param(&fm_cycles_start,sizeof(fm_cycles_start));
++  load_param(&fm_cycles_busy,sizeof(fm_cycles_busy));
+   fm_cycles_count = fm_cycles_start;
+ 
+   return bufferptr;
